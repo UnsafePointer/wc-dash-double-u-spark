@@ -7,5 +7,5 @@
  * in the user manual at https://docs.gradle.org/7.3.3/userguide/multi_project_builds.html
  */
 
-rootProject.name = "template"
+rootProject.name = "word-count-app"
 include("app")
