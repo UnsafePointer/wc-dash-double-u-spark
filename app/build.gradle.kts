@@ -38,5 +38,5 @@ dependencies {
 
 application {
     // Define the main class for the application.
-    mainClass.set("com.unsafepointer.template.AppKt")
+    mainClass.set("com.unsafepointer.word_count.AppKt")
 }
