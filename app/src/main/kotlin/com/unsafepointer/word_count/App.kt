@@ -7,7 +7,10 @@ import org.apache.spark.SparkFiles
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.api.java.function.FlatMapFunction
 import org.apache.spark.sql.SparkSession
-import org.jetbrains.kotlinx.spark.api.toDF
+import org.jetbrains.kotlinx.spark.api.toPairRDD
+import org.jetbrains.kotlinx.spark.api.tuples.component1
+import org.jetbrains.kotlinx.spark.api.tuples.component2
+import scala.Tuple2
 import java.net.URI
 
 class FlattenLineWords: FlatMapFunction<String, String> {
@@ -30,7 +33,18 @@ fun main() {
     val bookRDD = sparkContext.textFile("file://$sparkFile", 1)
 
     val wordsRDD = bookRDD.flatMap(FlattenLineWords())
-    wordsRDD.toDF(sparkSession).show()
+    val countRDD = wordsRDD.mapToPair { word -> Tuple2(word, 1) }
+    val reducedCountRDD = countRDD.reduceByKey { x, y -> x + y }
+    // Workaround to secondary sort not yet supported: https://issues.apache.org/jira/browse/SPARK-3655
+    val result = reducedCountRDD.map { it.swap() }.toPairRDD().sortByKey(false)
+    val uniqueWords = result.count()
+    val mostCommonWords = result.take(5).joinToString { tuple ->
+        val (count, word) = tuple
+        "$word ($count)"
+    }
+
+    println("Number of unique words: $uniqueWords")
+    println("Most common words: $mostCommonWords")
 
     sparkSession.stop()
 }
