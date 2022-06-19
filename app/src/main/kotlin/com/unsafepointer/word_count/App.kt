@@ -3,6 +3,11 @@
  */
 package com.unsafepointer.word_count
 
+import kotlinx.cli.ArgParser
+import kotlinx.cli.ArgType
+import kotlinx.cli.default
+import org.apache.log4j.Logger
+import org.apache.log4j.varia.NullAppender
 import org.apache.spark.SparkFiles
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.api.java.function.FlatMapFunction
@@ -18,17 +23,29 @@ class FlattenLineWords: FlatMapFunction<String, String> {
         if (line.isEmpty()) {
             return emptyList<String>().toMutableList().iterator()
         }
-        val words = line.replace("[^a-zA-Z ]".toRegex(), "").lowercase().split("\\s+".toRegex())
+        val words = line.replace("[^a-zA-Z ]".toRegex(), "").lowercase().trim().split("\\s+".toRegex())
         return words.toMutableList().iterator()
     }
 }
 
-fun main() {
-    val bookUrl = URI("https://www.gutenberg.org/files/2600/2600-0.txt")
-    val fileName = bookUrl.path.split("/").last()
+fun main(args: Array<String>) {
+    val parser = ArgParser("word-counter")
+    val bookUrl by parser.option(ArgType.String, shortName = "u", description = "Text file URL").default("https://www.gutenberg.org/files/2600/2600-0.txt")
+    val verbose by parser.option(ArgType.Boolean, shortName = "v", description = "Verbose mode, display Spark logs").default(false)
+
+    parser.parse(args)
+
+    if (!verbose) {
+        Logger.getRootLogger().removeAllAppenders()
+        Logger.getRootLogger().addAppender(NullAppender())
+    }
+
+    val bookUri = URI(bookUrl)
+    val fileName = bookUri.path.split("/").last()
     val sparkSession = SparkSession.builder().master("local[2]").appName("WordCounter").orCreate
     val sparkContext = JavaSparkContext(sparkSession.sparkContext())
-    sparkContext.addFile(bookUrl.toString())
+
+    sparkContext.addFile(bookUrl)
     val sparkFile = SparkFiles.get(fileName)
     val bookRDD = sparkContext.textFile("file://$sparkFile", 1)
 

@@ -35,6 +35,9 @@ dependencies {
     // Apache Spark
     implementation("org.apache.spark:spark-sql_2.12:3.2.1")
 
+    // Command-line parser
+    implementation("org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3.4")
+
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
