@@ -4,17 +4,33 @@
 package com.unsafepointer.word_count
 
 import org.apache.spark.SparkFiles
+import org.apache.spark.api.java.JavaSparkContext
+import org.apache.spark.api.java.function.FlatMapFunction
 import org.apache.spark.sql.SparkSession
-import org.jetbrains.kotlinx.spark.api.sparkContext
+import org.jetbrains.kotlinx.spark.api.toDF
 import java.net.URI
+
+class FlattenLineWords: FlatMapFunction<String, String> {
+    override fun call(line: String): MutableIterator<String> {
+        if (line.isEmpty()) {
+            return emptyList<String>().toMutableList().iterator()
+        }
+        val words = line.replace("[^a-zA-Z ]".toRegex(), "").lowercase().split("\\s+".toRegex())
+        return words.toMutableList().iterator()
+    }
+}
 
 fun main() {
     val bookUrl = URI("https://www.gutenberg.org/files/2600/2600-0.txt")
     val fileName = bookUrl.path.split("/").last()
-    val sparkSession = SparkSession.builder().master("local[2]").appName("SparkParquetExample").orCreate
-    sparkSession.sparkContext.addFile(bookUrl.toString())
+    val sparkSession = SparkSession.builder().master("local[2]").appName("WordCounter").orCreate
+    val sparkContext = JavaSparkContext(sparkSession.sparkContext())
+    sparkContext.addFile(bookUrl.toString())
     val sparkFile = SparkFiles.get(fileName)
-    val dataSet = sparkSession.read().text("file://$sparkFile")
-    dataSet.show()
+    val bookRDD = sparkContext.textFile("file://$sparkFile", 1)
+
+    val wordsRDD = bookRDD.flatMap(FlattenLineWords())
+    wordsRDD.toDF(sparkSession).show()
+
     sparkSession.stop()
 }
