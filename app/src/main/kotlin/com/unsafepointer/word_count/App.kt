@@ -23,7 +23,7 @@ class FlattenLineWords: FlatMapFunction<String, String> {
         if (line.isEmpty()) {
             return emptyList<String>().toMutableList().iterator()
         }
-        val words = line.replace("[^a-zA-Z ]".toRegex(), "").lowercase().split("\\s+".toRegex())
+        val words = line.replace("[^a-zA-Z ]".toRegex(), "").lowercase().trim().split("\\s+".toRegex())
         return words.toMutableList().iterator()
     }
 }
